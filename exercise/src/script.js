@@ -1,5 +1,23 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import * as lil_gui from "lil-gui";
+
+// Debugger
+const gui = new lil_gui.GUI();
+
+// Textures
+const textureLoader = new THREE.TextureLoader();
+const colorTexture = textureLoader.load("/textures/Alien_flesh_002_COLOR.jpg");
+const alphaTexture = textureLoader.load("/textures/door/alpha.jpg");
+const heightTexture = textureLoader.load("/textures/door/height.jpg");
+const normalTexture = textureLoader.load("/textures/door/normal.jpg");
+const ambianceOcclusionTexture = textureLoader.load(
+  "/textures/door/ambientOcclusion.jpg"
+);
+const metalnessTexture = textureLoader.load("/textures/door/metalness.jpg");
+const roughnessTexture = textureLoader.load("/textures/door/roughness.jpg");
+
+colorTexture.magFilter = THREE.NearestFilter;
 
 /**
  * Base
@@ -14,25 +32,19 @@ const scene = new THREE.Scene();
  * Object
  */
 const geometry = new THREE.BoxGeometry(1, 1, 1);
-// const geometry = new THREE.BufferGeometry();
-const count = 50;
-const positionsArray = new Float32Array(count * 3 * 3);
-
-for (let i = 0; i < count * 3 * 3; i++) {
-  positionsArray[i] = Math.random() - 0.5;
-}
-
-const positionsAttribute = new THREE.BufferAttribute(positionsArray, 3);
-// geometry.setAttribute("position", positionsAttribute);
-
-const material = new THREE.MeshBasicMaterial({
-  color: 0xff0000,
-  wireframe: true,
-});
-
+const material = new THREE.MeshBasicMaterial({ map: colorTexture });
 const mesh = new THREE.Mesh(geometry, material);
-console.log(mesh.position.z);
 scene.add(mesh);
+
+/**
+ * Debug
+ */
+
+gui.add(mesh.position, "x").min(-1).max(1).step(0.01).name("sides");
+gui.add(mesh.position, "y").min(-1).max(1).step(0.01).name("topdown");
+gui.add(mesh.position, "z").min(-1).max(1).step(0.01).name("depth");
+gui.add(material, "wireframe");
+gui.addColor(material, "color");
 
 /**
  * Sizes
@@ -43,27 +55,17 @@ const sizes = {
 };
 
 window.addEventListener("resize", () => {
+  // Update sizes
   sizes.width = window.innerWidth;
   sizes.height = window.innerHeight;
 
+  // Update camera
   camera.aspect = sizes.width / sizes.height;
   camera.updateProjectionMatrix();
 
+  // Update renderer
   renderer.setSize(sizes.width, sizes.height);
-  // Below helps performance for when device pixle ratio is higher than 2
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-});
-
-window.addEventListener("dblclick", () => {
-  const fullscreenElement =
-    document.fullscreenElement || document.webkitFullscreenElement;
-  if (!fullscreenElement) {
-    if (canvas.requestFullscreen) canvas.requestFullscreen();
-    else if (canvas.webkitRequestFullscreen) canvas.webkitRequestFullscreen();
-  } else {
-    if (document.exitFullscreen) document.exitFullscreen();
-    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-  }
 });
 
 /**
@@ -76,7 +78,9 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   100
 );
-camera.position.z = 3;
+camera.position.x = 1;
+camera.position.y = 1;
+camera.position.z = 1;
 scene.add(camera);
 
 // Controls
@@ -90,6 +94,7 @@ const renderer = new THREE.WebGLRenderer({
   canvas: canvas,
 });
 renderer.setSize(sizes.width, sizes.height);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
 /**
  * Animate
