@@ -1,100 +1,131 @@
 import * as THREE from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+import Stats from "three/examples/jsm/libs/stats.module";
 import * as lil_gui from "lil-gui";
+import * as CANNON from "cannon-es";
 
-// Debugger
-const gui = new lil_gui.GUI();
-
-// Textures
-const textureLoader = new THREE.TextureLoader();
-const colorTexture = textureLoader.load("/textures/Alien_flesh_002_COLOR.jpg");
-const alphaTexture = textureLoader.load("/textures/door/alpha.jpg");
-const heightTexture = textureLoader.load("/textures/door/height.jpg");
-const normalTexture = textureLoader.load("/textures/door/normal.jpg");
-const ambianceOcclusionTexture = textureLoader.load(
-  "/textures/door/ambientOcclusion.jpg"
-);
-const metalnessTexture = textureLoader.load("/textures/door/metalness.jpg");
-const roughnessTexture = textureLoader.load("/textures/door/roughness.jpg");
-
-colorTexture.magFilter = THREE.NearestFilter;
-
-// Canvas
-const canvas = document.querySelector("canvas.webgl");
-
-// Scene
 const scene = new THREE.Scene();
+scene.add(new THREE.AxesHelper(5));
 
-// Object
-const geometry = new THREE.BoxGeometry(1, 1, 1);
-const material = new THREE.MeshBasicMaterial({ map: colorTexture });
-const mesh = new THREE.Mesh(geometry, material);
-scene.add(mesh);
+const light1 = new THREE.SpotLight();
+light1.position.set(2.5, 5, 5);
+light1.angle = Math.PI / 4;
+light1.penumbra = 0.5;
+light1.castShadow = true;
+light1.shadow.mapSize.width = 1024;
+light1.shadow.mapSize.height = 1024;
+light1.shadow.camera.near = 0.5;
+light1.shadow.camera.far = 20;
+scene.add(light1);
 
-// Debug
-gui.add(mesh.position, "x").min(-1).max(1).step(0.01).name("sides");
-gui.add(mesh.position, "y").min(-1).max(1).step(0.01).name("topdown");
-gui.add(mesh.position, "z").min(-1).max(1).step(0.01).name("depth");
-gui.add(material, "wireframe");
-gui.addColor(material, "color");
+const light2 = new THREE.SpotLight();
+light2.position.set(-2.5, 5, 5);
+light2.angle = Math.PI / 4;
+light2.penumbra = 0.5;
+light2.castShadow = true;
+light2.shadow.mapSize.width = 1024;
+light2.shadow.mapSize.height = 1024;
+light2.shadow.camera.near = 0.5;
+light2.shadow.camera.far = 20;
+scene.add(light2);
 
-// Sizes
-const sizes = {
-  width: window.innerWidth,
-  height: window.innerHeight,
-};
-
-window.addEventListener("resize", () => {
-  // Update sizes
-  sizes.width = window.innerWidth;
-  sizes.height = window.innerHeight;
-
-  // Update camera
-  camera.aspect = sizes.width / sizes.height;
-  camera.updateProjectionMatrix();
-
-  // Update renderer
-  renderer.setSize(sizes.width, sizes.height);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-});
-
-// Base Camera
 const camera = new THREE.PerspectiveCamera(
   75,
-  sizes.width / sizes.height,
+  window.innerWidth / window.innerHeight,
   0.1,
-  100
+  1000
 );
-camera.position.x = 1;
-camera.position.y = 1;
-camera.position.z = 1;
-scene.add(camera);
+camera.position.set(0, 2, 4);
 
-// Controls
-const controls = new OrbitControls(camera, canvas);
+const renderer = new THREE.WebGLRenderer();
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+document.body.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
+controls.target.y = 0.5;
 
-// Renderer
-const renderer = new THREE.WebGLRenderer({
-  canvas: canvas,
-});
-renderer.setSize(sizes.width, sizes.height);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+const world = new CANNON.World();
+world.gravity.set(0, -9.82, 0);
 
-// Animation
+const normalMaterial = new THREE.MeshNormalMaterial();
+const phongMaterial = new THREE.MeshPhongMaterial();
+
+const cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
+const cubeMesh = new THREE.Mesh(cubeGeometry, normalMaterial);
+cubeMesh.position.x = 0;
+cubeMesh.position.y = 3;
+cubeMesh.castShadow = true;
+scene.add(cubeMesh);
+const cubeShape = new CANNON.Box(new CANNON.Vec3(0.5, 0.5, 0.5));
+const cubeBody = new CANNON.Body({ mass: 1 });
+cubeBody.addShape(cubeShape);
+cubeBody.position.x = cubeMesh.position.x;
+cubeBody.position.y = cubeMesh.position.y;
+cubeBody.position.z = cubeMesh.position.z;
+world.addBody(cubeBody);
+
+const planeGeometry = new THREE.PlaneGeometry(25, 25);
+const planeMesh = new THREE.Mesh(planeGeometry, phongMaterial);
+planeMesh.rotateX(-Math.PI / 2);
+planeMesh.receiveShadow = true;
+scene.add(planeMesh);
+const planeShape = new CANNON.Plane();
+const planeBody = new CANNON.Body({ mass: 0 });
+planeBody.addShape(planeShape);
+planeBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
+world.addBody(planeBody);
+
+window.addEventListener("resize", onWindowResize, false);
+function onWindowResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  render();
+}
+
+const stats = new Stats();
+document.body.appendChild(stats.dom);
+
+const gui = new lil_gui.GUI();
+const physicsFolder = gui.addFolder("Physics");
+physicsFolder.add(world.gravity, "x", -10.0, 10.0, 0.1);
+physicsFolder.add(world.gravity, "y", -10.0, 10.0, 0.1);
+physicsFolder.add(world.gravity, "z", -10.0, 10.0, 0.1);
+physicsFolder.open();
+
 const clock = new THREE.Clock();
+let delta;
 
-const tick = () => {
-  const elapsedTime = clock.getElapsedTime();
+function animate() {
+  requestAnimationFrame(animate);
 
-  // Update controls
   controls.update();
 
-  // Render
+  delta = Math.min(clock.getDelta(), 0.1);
+  world.step(delta);
+
+  // Copy coordinates from Cannon to Three.js
+  cubeMesh.position.set(
+    cubeBody.position.x,
+    cubeBody.position.y,
+    cubeBody.position.z
+  );
+  cubeMesh.quaternion.set(
+    cubeBody.quaternion.x,
+    cubeBody.quaternion.y,
+    cubeBody.quaternion.z,
+    cubeBody.quaternion.w
+  );
+
+  render();
+
+  stats.update();
+}
+
+function render() {
   renderer.render(scene, camera);
+}
 
-  // Call tick again on the next frame
-  window.requestAnimationFrame(tick);
-};
-
-tick();
+animate();
