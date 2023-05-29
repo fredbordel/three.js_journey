@@ -19,36 +19,26 @@ const roughnessTexture = textureLoader.load("/textures/door/roughness.jpg");
 
 colorTexture.magFilter = THREE.NearestFilter;
 
-/**
- * Base
- */
 // Canvas
 const canvas = document.querySelector("canvas.webgl");
 
 // Scene
 const scene = new THREE.Scene();
 
-/**
- * Object
- */
+// Object
 const geometry = new THREE.BoxGeometry(1, 1, 1);
 const material = new THREE.MeshBasicMaterial({ map: colorTexture });
 const mesh = new THREE.Mesh(geometry, material);
 scene.add(mesh);
 
-/**
- * Debug
- */
-
+// Debug
 gui.add(mesh.position, "x").min(-1).max(1).step(0.01).name("sides");
 gui.add(mesh.position, "y").min(-1).max(1).step(0.01).name("topdown");
 gui.add(mesh.position, "z").min(-1).max(1).step(0.01).name("depth");
 gui.add(material, "wireframe");
 gui.addColor(material, "color");
 
-/**
- * Sizes
- */
+// Sizes
 const sizes = {
   width: window.innerWidth,
   height: window.innerHeight,
@@ -68,10 +58,7 @@ window.addEventListener("resize", () => {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 });
 
-/**
- * Camera
- */
-// Base camera
+// Base Camera
 const camera = new THREE.PerspectiveCamera(
   75,
   sizes.width / sizes.height,
@@ -87,18 +74,14 @@ scene.add(camera);
 const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
 
-/**
- * Renderer
- */
+// Renderer
 const renderer = new THREE.WebGLRenderer({
   canvas: canvas,
 });
 renderer.setSize(sizes.width, sizes.height);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-/**
- * Animate
- */
+// Animation
 const clock = new THREE.Clock();
 
 const tick = () => {
