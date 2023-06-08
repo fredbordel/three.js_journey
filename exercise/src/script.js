@@ -1,131 +1,102 @@
 import * as THREE from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import Stats from "three/examples/jsm/libs/stats.module";
-import * as lil_gui from "lil-gui";
-import * as CANNON from "cannon-es";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import * as dat from "lil-gui";
 
+// Debugger
+const gui = new dat.GUI();
+
+// Canvas
+const canvas = document.querySelector("canvas.webgl");
+
+// Scene
 const scene = new THREE.Scene();
-scene.add(new THREE.AxesHelper(5));
 
-const light1 = new THREE.SpotLight();
-light1.position.set(2.5, 5, 5);
-light1.angle = Math.PI / 4;
-light1.penumbra = 0.5;
-light1.castShadow = true;
-light1.shadow.mapSize.width = 1024;
-light1.shadow.mapSize.height = 1024;
-light1.shadow.camera.near = 0.5;
-light1.shadow.camera.far = 20;
-scene.add(light1);
+// Textures
+const textureLoader = new THREE.TextureLoader();
 
-const light2 = new THREE.SpotLight();
-light2.position.set(-2.5, 5, 5);
-light2.angle = Math.PI / 4;
-light2.penumbra = 0.5;
-light2.castShadow = true;
-light2.shadow.mapSize.width = 1024;
-light2.shadow.mapSize.height = 1024;
-light2.shadow.camera.near = 0.5;
-light2.shadow.camera.far = 20;
-scene.add(light2);
+// Group
+const group = new THREE.Group();
+scene.add(group);
 
+// Objects
+const cube = new THREE.Mesh(
+  new THREE.BoxGeometry(1, 1, 1),
+  new THREE.MeshBasicMaterial({ color: "#fff" })
+);
+
+for (let i = 0; i < 27; i++) {
+  group.add(cube);
+}
+
+// Sizes
+const sizes = {
+  width: window.innerWidth,
+  height: window.innerHeight,
+};
+
+window.addEventListener("resize", () => {
+  // Update sizes
+  sizes.width = window.innerWidth;
+  sizes.height = window.innerHeight;
+
+  // Update camera
+  camera.aspect = sizes.width / sizes.height;
+  camera.updateProjectionMatrix();
+
+  // Update renderer
+  renderer.setSize(sizes.width, sizes.height);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+});
+
+// Base camera
 const camera = new THREE.PerspectiveCamera(
   75,
-  window.innerWidth / window.innerHeight,
+  sizes.width / sizes.height,
   0.1,
-  1000
+  100
 );
-camera.position.set(0, 2, 4);
+camera.position.x = 1;
+camera.position.y = 1;
+camera.position.z = 2;
+scene.add(camera);
 
-const renderer = new THREE.WebGLRenderer();
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.shadowMap.enabled = true;
-document.body.appendChild(renderer.domElement);
-
-const controls = new OrbitControls(camera, renderer.domElement);
+// Controls
+const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
-controls.target.y = 0.5;
 
-const world = new CANNON.World();
-world.gravity.set(0, -9.82, 0);
+// Renderer
+const renderer = new THREE.WebGLRenderer({
+  canvas: canvas,
+});
+renderer.setSize(sizes.width, sizes.height);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-const normalMaterial = new THREE.MeshNormalMaterial();
-const phongMaterial = new THREE.MeshPhongMaterial();
-
-const cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
-const cubeMesh = new THREE.Mesh(cubeGeometry, normalMaterial);
-cubeMesh.position.x = 0;
-cubeMesh.position.y = 3;
-cubeMesh.castShadow = true;
-scene.add(cubeMesh);
-const cubeShape = new CANNON.Box(new CANNON.Vec3(0.5, 0.5, 0.5));
-const cubeBody = new CANNON.Body({ mass: 1 });
-cubeBody.addShape(cubeShape);
-cubeBody.position.x = cubeMesh.position.x;
-cubeBody.position.y = cubeMesh.position.y;
-cubeBody.position.z = cubeMesh.position.z;
-world.addBody(cubeBody);
-
-const planeGeometry = new THREE.PlaneGeometry(25, 25);
-const planeMesh = new THREE.Mesh(planeGeometry, phongMaterial);
-planeMesh.rotateX(-Math.PI / 2);
-planeMesh.receiveShadow = true;
-scene.add(planeMesh);
-const planeShape = new CANNON.Plane();
-const planeBody = new CANNON.Body({ mass: 0 });
-planeBody.addShape(planeShape);
-planeBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
-world.addBody(planeBody);
-
-window.addEventListener("resize", onWindowResize, false);
-function onWindowResize() {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  render();
-}
-
-const stats = new Stats();
-document.body.appendChild(stats.dom);
-
-const gui = new lil_gui.GUI();
-const physicsFolder = gui.addFolder("Physics");
-physicsFolder.add(world.gravity, "x", -10.0, 10.0, 0.1);
-physicsFolder.add(world.gravity, "y", -10.0, 10.0, 0.1);
-physicsFolder.add(world.gravity, "z", -10.0, 10.0, 0.1);
-physicsFolder.open();
-
+// Animate
 const clock = new THREE.Clock();
-let delta;
 
-function animate() {
-  requestAnimationFrame(animate);
+const tick = () => {
+  const elapsedTime = clock.getElapsedTime();
 
+  // Update controls
   controls.update();
 
-  delta = Math.min(clock.getDelta(), 0.1);
-  world.step(delta);
-
-  // Copy coordinates from Cannon to Three.js
-  cubeMesh.position.set(
-    cubeBody.position.x,
-    cubeBody.position.y,
-    cubeBody.position.z
-  );
-  cubeMesh.quaternion.set(
-    cubeBody.quaternion.x,
-    cubeBody.quaternion.y,
-    cubeBody.quaternion.z,
-    cubeBody.quaternion.w
-  );
-
-  render();
-
-  stats.update();
-}
-
-function render() {
+  // Render
   renderer.render(scene, camera);
-}
 
-animate();
+  // Call tick again on the next frame
+  window.requestAnimationFrame(tick);
+};
+
+// Debugger controls
+gui.add(cube.position, "x").min(-3).max(3).step(0.01).name("[x] side to side");
+gui.add(cube.position, "y").min(-3).max(3).step(0.01).name("[y] top to bottom");
+gui.add(cube.position, "z").min(-3).max(3).step(0.01).name("[z] far to near");
+gui.add(cube, "visible");
+gui.add(cube.material, "wireframe");
+gui.addColor(cube.material, "color");
+
+// Axis helper
+const axesHelper = new THREE.AxesHelper(5);
+scene.add(axesHelper);
+
+tick();
