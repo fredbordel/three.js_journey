@@ -20,83 +20,24 @@ const group = new THREE.Object3D();
 scene.add(group);
 
 // Creatin all 27 cubes
-let cube = [];
-let positionX = 0;
+const geometry = new THREE.BoxGeometry(1, 1, 1);
+const material = new THREE.MeshBasicMaterial({ map: colorTexture });
+let cubeGroup = new THREE.Object3D();
+let cubes = [];
+let n = 0;
 
-for (let i = 0; i < 27; i++) {
-  cube[i] = new THREE.Mesh(
-    new THREE.BoxGeometry(1, 1, 1),
-    new THREE.MeshBasicMaterial({ map: colorTexture })
-  );
-
-  // First stage of cube [from bottom to top]
-  //
-  if (i >= 0 && i < 2) {
-    positionX += 1;
-    cube[i].position.x += positionX;
+for (let x = 0; x < 3; x++) {
+  for (let y = 0; y < 3; y++) {
+    for (let z = 0; z < 3; z++) {
+      cubes.push(new THREE.Mesh(geometry, material));
+      cubes[n].position.set(x - 1, y - 1, z - 1);
+      cubeGroup.add(cubes[n]);
+      n++;
+    }
   }
-
-  if (i >= 2 && i < 5) {
-    positionX += -1;
-    cube[i].position.x += positionX + 1;
-    cube[i].position.z += 1;
-  }
-
-  if (i >= 5 && i < 8) {
-    positionX += 1;
-    cube[i].position.x += positionX;
-    cube[i].position.z += 2;
-  }
-
-  // Second stage of cube[i]
-  //
-  if (i >= 8 && i < 11) {
-    positionX += 1;
-    cube[i].position.x += positionX - 3;
-    cube[i].position.y += 1;
-  }
-
-  if (i >= 11 && i < 14) {
-    positionX += -1;
-    cube[i].position.x += positionX - 2;
-    cube[i].position.z += 1;
-    cube[i].position.y += 1;
-  }
-
-  if (i >= 14 && i < 17) {
-    positionX += 1;
-    cube[i].position.x += positionX - 3;
-    cube[i].position.z += 2;
-    cube[i].position.y += 1;
-  }
-
-  // Third and last stage of cube[i]
-  //
-
-  if (i >= 17 && i < 20) {
-    positionX += 1;
-    cube[i].position.x += positionX - 6;
-    cube[i].position.y += 2;
-  }
-
-  if (i >= 20 && i < 23) {
-    positionX += -1;
-    cube[i].position.x += positionX - 5;
-    cube[i].position.z += 1;
-    cube[i].position.y += 2;
-  }
-
-  if (i >= 23 && i < 26) {
-    positionX += 1;
-    cube[i].position.x += positionX - 6;
-    cube[i].position.z += 2;
-    cube[i].position.y += 2;
-  }
-
-  // cube[i].material.wireframe = true;
-  group.add(cube[i]);
-  scene.add(cube[i]);
 }
+
+scene.add(cubeGroup);
 
 // Sizes
 const sizes = {
@@ -144,29 +85,28 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 // Animate
 const clock = new THREE.Clock();
 
-let isComingBack = false;
+let f = 0;
+let sign = 1;
+let upper = 25;
 const tick = () => {
   const elapsedTime = clock.getElapsedTime();
+
+  // Animating 27 cubes
+  for (var i = 0; i < 27; i++) {
+    cubes[i].position.x += sign * 0.02 * Math.sign(cubes[i].position.x);
+    cubes[i].position.y += sign * 0.02 * Math.sign(cubes[i].position.y);
+    cubes[i].position.z += sign * 0.02 * Math.sign(cubes[i].position.z);
+  }
+  if (f > upper || f < 0) {
+    sign *= -1;
+  }
+  f += sign / 2;
 
   // Update controls
   controls.update();
 
   // Render
   renderer.render(scene, camera);
-
-  // Animation of cubes
-  for (let item of cube) {
-    let itemInitialX = item.position.x;
-    if (item.position.x <= itemInitialX + Math.random() && !isComingBack) {
-      item.position.x += 0.03;
-
-      if (item.position.x > itemInitialX + Math.random()) isComingBack = true;
-    } else if (isComingBack) {
-      item.position.x -= 0.03;
-
-      if (item.position.x <= itemInitialX) isComingBack = false;
-    }
-  }
 
   // Call tick again on the next frame
   window.requestAnimationFrame(tick);
