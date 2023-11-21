@@ -39,6 +39,21 @@ const scene = new THREE.Scene();
 /**
  * Textures
  */
+const hitSound = new Audio("/sounds/hit.mp3");
+
+const playHitSound = (collision) => {
+  const impactStrength = collision.contact.getImpactVelocityAlongNormal();
+
+  if (impactStrength > 2) {
+    hitSound.volume = Math.random();
+    hitSound.currentTime = 0;
+    hitSound.play();
+  }
+};
+
+/**
+ * Textures
+ */
 const textureLoader = new THREE.TextureLoader();
 const cubeTextureLoader = new THREE.CubeTextureLoader();
 
@@ -55,6 +70,10 @@ const environmentMapTexture = cubeTextureLoader.load([
  * Physics
  */
 const world = new CANNON.World();
+// Perfomance optimization with broadphase & allowSleep
+world.broadphase = new CANNON.SAPBroadphase(world);
+world.allowSleep = true;
+
 world.gravity.set(0, -9.82, 0);
 
 const defaultMaterial = new CANNON.Material("default");
@@ -191,6 +210,7 @@ const createSphere = (radius, position) => {
     material: defaultMaterial,
   });
   body.position.copy(position);
+  body.addEventListener("collide", playHitSound);
   world.addBody(body);
 
   // Save in objectsToUpdate

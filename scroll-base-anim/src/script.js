@@ -1,22 +1,13 @@
 import * as THREE from "three";
 import * as dat from "lil-gui";
 import gsap from "gsap";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 THREE.ColorManagement.enabled = false;
-
-/**
- * Debug
- */
-const gui = new dat.GUI();
-
 const parameters = {
   materialColor: "#ffeded",
 };
-
-gui.addColor(parameters, "materialColor").onChange(() => {
-  material.color.set(parameters.materialColor);
-  particlesMaterial.color.set(parameters.materialColor);
-});
+const objectLoader = new GLTFLoader();
 
 /**
  * Base
@@ -27,11 +18,31 @@ const canvas = document.querySelector("canvas.webgl");
 // Scene
 const scene = new THREE.Scene();
 
+// 3D Object Loader
+objectLoader.load(
+  "objects/chevre.glb",
+  function (chevre) {
+    console.log(chevre.scene);
+    chevre.scene.position.y = -1.7;
+    chevre.scene.position.x = 3.8;
+    chevre.scene.scale.set(0.5, 0.5, 0.5);
+    scene.add(chevre.scene);
+  },
+  undefined,
+  function (error) {
+    console.error(error);
+  }
+);
+
 /**
  * Objects
  */
 const textureLoader = new THREE.TextureLoader();
 const gradientTexture = textureLoader.load("textures/gradients/3.jpg");
+const moonColorTexture = textureLoader.load("textures/moon_color_texture.jpg");
+const moonDisplacementTexture = textureLoader.load(
+  "textures/moon_displacement_texture.jpg"
+);
 gradientTexture.magFilter = THREE.NearestFilter;
 
 const material = new THREE.MeshToonMaterial({
@@ -40,26 +51,46 @@ const material = new THREE.MeshToonMaterial({
 });
 
 const objectsDistance = 4;
-const mesh1 = new THREE.Mesh(new THREE.TorusGeometry(1, 0.4, 16, 60), material);
-
-const mesh2 = new THREE.Mesh(new THREE.ConeGeometry(1, 2, 32), material);
-
-const mesh3 = new THREE.Mesh(
-  new THREE.TorusKnotGeometry(0.8, 0.35, 100, 16),
+const mesh1 = new THREE.Mesh(
+  new THREE.TorusGeometry(0.8, 0.2, 14, 45),
   material
 );
 
-mesh1.position.y = -objectsDistance * 0;
-mesh2.position.y = -objectsDistance * 1;
-mesh3.position.y = -objectsDistance * 2;
+const mesh2 = new THREE.Mesh(new THREE.ConeGeometry(0.8, 1, 30), material);
+
+const mesh3 = new THREE.Mesh(
+  new THREE.TorusKnotGeometry(0.5, 0.2, 80, 10),
+  material
+);
+
+mesh1.position.y = -objectsDistance * 1;
+mesh2.position.y = -objectsDistance * 2;
+mesh3.position.y = -objectsDistance * 3;
 
 mesh1.position.x = 2;
-mesh2.position.x = -2;
+mesh2.position.x = 2;
 mesh3.position.x = 2;
 
-scene.add(mesh1, mesh2, mesh3);
+const moonGeometry = new THREE.SphereGeometry(0.6, 20, 20);
 
-const sectionMeshes = [mesh1, mesh2, mesh3];
+const moonMaterial = new THREE.MeshPhongMaterial({
+  color: 0xffffff,
+  map: moonColorTexture,
+  moonDisplacementTexture: moonDisplacementTexture,
+  displacementScale: 0.06,
+  bumpMap: moonDisplacementTexture,
+  bumpScale: 0.04,
+  reflectivity: 0,
+  shininess: 0,
+});
+
+const moon = new THREE.Mesh(moonGeometry, moonMaterial);
+moon.position.x = -0.5;
+moon.position.y = 0.63;
+moon.position.z = 5;
+// scene.add(moon);
+
+const sectionMeshes = [mesh1];
 
 /**
  * Particles
@@ -93,9 +124,14 @@ scene.add(particles);
 /**
  * Light
  */
-const directionalLight = new THREE.DirectionalLight("#ffffff", 1);
-directionalLight.position.set(1, 1, 0);
-scene.add(directionalLight);
+const directionalLight = new THREE.DirectionalLight("#ffffff", 0.2);
+directionalLight.position.set(0, 1, 6);
+
+const sunLight = new THREE.DirectionalLight("#ffffff", 1.5);
+sunLight.position.set(0.2, 0.71, 4.5);
+// sunLight.target = moon;
+
+scene.add(sunLight, sunLight.target, directionalLight);
 
 /**
  * Sizes
@@ -104,20 +140,6 @@ const sizes = {
   width: window.innerWidth,
   height: window.innerHeight,
 };
-
-window.addEventListener("resize", () => {
-  // Update sizes
-  sizes.width = window.innerWidth;
-  sizes.height = window.innerHeight;
-
-  // Update camera
-  camera.aspect = sizes.width / sizes.height;
-  camera.updateProjectionMatrix();
-
-  // Update renderer
-  renderer.setSize(sizes.width, sizes.height);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-});
 
 /**
  * Camera
@@ -134,7 +156,7 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   100
 );
-camera.position.z = 6;
+camera.position.z = 10;
 cameraGroup.add(camera);
 
 /**
@@ -160,7 +182,7 @@ window.addEventListener("scroll", () => {
   const newSection = Math.round(scrollY / sizes.height);
   if (newSection !== currentSection) {
     currentSection = newSection;
-    gsap.to(sectionMeshes[currentSection].rotation, {
+    gsap.to(sectionMeshes[currentSection]?.rotation, {
       duration: 1.5,
       ease: "power2.inOut",
       x: "+=06",
@@ -168,19 +190,6 @@ window.addEventListener("scroll", () => {
       z: "+=1.5",
     });
   }
-});
-
-/**
- * Cursor
- */
-const cursor = {
-  x: 0,
-  y: 0,
-};
-
-window.addEventListener("mousemove", (event) => {
-  cursor.x = event.clientX / sizes.width - 0.5;
-  cursor.y = event.clientY / sizes.height - 0.5;
 });
 
 /**
@@ -194,19 +203,22 @@ const tick = () => {
   const deltaTime = elapsedTime - previousTime;
   previousTime = elapsedTime;
 
-  camera.position.y = (-scrollY / sizes.height) * objectsDistance;
-
-  const parallaxX = cursor.x * 0.5;
-  const parallaxY = -cursor.y * 0.5;
-  cameraGroup.position.x +=
-    (parallaxX - cameraGroup.position.x) * 3 * deltaTime;
-  cameraGroup.position.y +=
-    (parallaxY - cameraGroup.position.y) * 3 * deltaTime;
-
   for (const mesh of sectionMeshes) {
     mesh.rotation.x += deltaTime * 0.1;
     mesh.rotation.y += deltaTime * 0.12;
   }
+
+  // Moon animtation
+  // if (moon.position.x >= -0.02) {
+  //   moon.position.x = moon.position.x;
+  // } else if (moon.position.x >= -0.5) {
+  //   moon.position.x += 0.0015;
+  // } else {
+  //   moon.position.x += 0.002;
+  // }
+
+  // moon.rotation.y += 0.0005;
+  // moon.rotation.x += 0.0009;
 
   // Render
   renderer.render(scene, camera);
