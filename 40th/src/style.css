@@ -8,12 +8,23 @@ html {
     background: #1b1b1b;
 }
 
-.webgl
+/* .webgl
 {
     position: fixed;
     top: 0;
     left: 0;
     outline: none;
+} */
+
+.canvas-container {
+    aspect-ratio: 1 / 1;
+    position: relative;
+    width: 100%;
+    height: auto;
+}
+
+.canvas-container :hover {
+    cursor: pointer;
 }
 
 .logo {
@@ -56,12 +67,12 @@ section {
     color: white;
 }
 
-.objects div {
+.objects .object {
     display: flex;
     flex-direction: column;
     align-items: center;
     width: 30%;
-    margin-top: 400px;
+    margin-top: 80px;
 }
 
 .objects h2 {
