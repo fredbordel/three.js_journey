@@ -25,6 +25,12 @@ function fitCanvaToContainer(canvas) {
   canvas.height = canvas.offsetHeight;
 }
 
+// fitCanToContainer whenever the screen is resized
+// window.addEventListener("resize", () => {
+//   fitCanvaToContainer(canvasChevre);
+//   fitCanvaToContainer(canvasLion);
+// });
+
 // Scene
 const scene = new THREE.Scene();
 const sceneLion = new THREE.Scene();
@@ -51,8 +57,8 @@ objectLoader.load(
 objectLoader.load(
   "objects/lion.glb",
   function (lion) {
-    lion.scene.position.y = -1.5;
-    lion.scene.position.x = 0.25;
+    lion.scene.position.y = -1.1;
+    lion.scene.scale.set(1.3, 1.3, 1.3);
     sceneLion.add(lion.scene);
   },
   undefined,
@@ -64,23 +70,26 @@ objectLoader.load(
 /**
  * Light
  */
+
+// CHEVRE
 const directionalLight = new THREE.DirectionalLight("#ffffff", 2);
 directionalLight.position.set(1, 0, 2);
 
 const directionalLight2 = new THREE.DirectionalLight("#ffffff", 2);
 directionalLight2.position.set(-1, -1, -5);
 
+// LION
 const directionalLightLion = new THREE.DirectionalLight("#ffffff", 2);
-directionalLight.position.set(1, 0, 2);
+directionalLightLion.position.set(2, 0, 2);
 
 const directionalLight2Lion = new THREE.DirectionalLight("#ffffff", 2);
-directionalLight2.position.set(-1, -1, -5);
+directionalLight2Lion.position.set(-1, -1, -5);
 
 // const directionalLightHelper = new THREE.DirectionalLightHelper(
-//   directionalLight2,
+//   directionalLightLion,
 //   0.2
 // );
-// scene.add(directionalLightHelper);
+// sceneLion.add(directionalLightHelper);
 
 scene.add(directionalLight, directionalLight2);
 sceneLion.add(directionalLightLion, directionalLight2Lion);

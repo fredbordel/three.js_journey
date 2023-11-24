@@ -8,14 +8,6 @@ html {
     background: #1b1b1b;
 }
 
-/* .webgl
-{
-    position: fixed;
-    top: 0;
-    left: 0;
-    outline: none;
-} */
-
 .canvas-container {
     aspect-ratio: 1 / 1;
     position: relative;
@@ -30,16 +22,14 @@ html {
 .logo {
     display: flex;
     justify-content: center;
-    margin-top: 106px;
 }
 
-.logo svg {
-    width: 400px;
+.logo img {
+    width: 80%;
 }
 
 section {
     font-family: 'Be Vietnam Pro', sans-serif;
-    margin: 80px 0;
     text-align: center;
 }
 
@@ -48,8 +38,11 @@ section {
     align-items: center;
     justify-content: center;
     flex-direction: column;
-    row-gap: 40px;
-    color: white;
+    row-gap: 32px;
+    color: black;
+    background-color: white;
+    padding: 60px 0;
+
 }
 
 .header h1 {
@@ -65,26 +58,40 @@ section {
     justify-content: space-evenly;
     align-items: center;
     color: white;
+    margin-bottom: 120px;
 }
 
 .objects .object {
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 45%;
-    margin-top: 80px;
+    width: 40%;
 }
 
 .objects h2 {
     font-size: 32px;
+    margin-bottom: 24px;
+}
+
+.objects p {
+    line-height: 1.4;
 }
 
 @media screen and (max-width: 600px) {
-    .objects {
-        flex-direction: column;
+    .header {
+        padding: 40px 12px;
     }
 
-    .objects div {
+    .objects {
+        flex-direction: column;
+        padding: 0 12px;
+    }
+
+    .objects .object {
+        width: 100%;
+    }
+
+    .logo img {
         width: 100%;
     }
 }
