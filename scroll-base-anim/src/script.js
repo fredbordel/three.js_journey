@@ -1,13 +1,11 @@
 import * as THREE from "three";
 import * as dat from "lil-gui";
 import gsap from "gsap";
-import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 THREE.ColorManagement.enabled = false;
 const parameters = {
   materialColor: "#ffeded",
 };
-const objectLoader = new GLTFLoader();
 
 /**
  * Base
@@ -17,22 +15,6 @@ const canvas = document.querySelector("canvas.webgl");
 
 // Scene
 const scene = new THREE.Scene();
-
-// 3D Object Loader
-objectLoader.load(
-  "objects/chevre.glb",
-  function (chevre) {
-    console.log(chevre.scene);
-    chevre.scene.position.y = -1.7;
-    chevre.scene.position.x = 3.8;
-    chevre.scene.scale.set(0.5, 0.5, 0.5);
-    scene.add(chevre.scene);
-  },
-  undefined,
-  function (error) {
-    console.error(error);
-  }
-);
 
 /**
  * Objects
@@ -85,10 +67,10 @@ const moonMaterial = new THREE.MeshPhongMaterial({
 });
 
 const moon = new THREE.Mesh(moonGeometry, moonMaterial);
-moon.position.x = -0.5;
+moon.position.x = -2;
 moon.position.y = 0.63;
 moon.position.z = 5;
-// scene.add(moon);
+scene.add(moon);
 
 const sectionMeshes = [mesh1];
 
@@ -129,7 +111,7 @@ directionalLight.position.set(0, 1, 6);
 
 const sunLight = new THREE.DirectionalLight("#ffffff", 1.5);
 sunLight.position.set(0.2, 0.71, 4.5);
-// sunLight.target = moon;
+sunLight.target = moon;
 
 scene.add(sunLight, sunLight.target, directionalLight);
 
@@ -209,16 +191,16 @@ const tick = () => {
   }
 
   // Moon animtation
-  // if (moon.position.x >= -0.02) {
-  //   moon.position.x = moon.position.x;
-  // } else if (moon.position.x >= -0.5) {
-  //   moon.position.x += 0.0015;
-  // } else {
-  //   moon.position.x += 0.002;
-  // }
+  if (moon.position.x >= -0.02) {
+    moon.position.x = moon.position.x;
+  } else if (moon.position.x >= -0.5) {
+    moon.position.x += 0.0015;
+  } else {
+    moon.position.x += 0.002;
+  }
 
-  // moon.rotation.y += 0.0005;
-  // moon.rotation.x += 0.0009;
+  moon.rotation.y += 0.0005;
+  moon.rotation.x += 0.0009;
 
   // Render
   renderer.render(scene, camera);
