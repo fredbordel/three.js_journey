@@ -5,6 +5,7 @@ import * as dat from "lil-gui";
 
 let chevreObj = null;
 let lionObj = null;
+let costumeObj = null;
 
 const gui = new dat.GUI({ width: 300 });
 gui.close();
@@ -15,9 +16,6 @@ const parameters = {
 gui.addColor(parameters, "lightColor").onChange(changeLightColor);
 
 THREE.ColorManagement.enabled = false;
-// const parameters = {
-//   materialColor: "#ffeded",
-// };
 const objectLoader = new GLTFLoader();
 
 /**
@@ -30,6 +28,9 @@ fitCanvaToContainer(canvasChevre);
 const canvasLion = document.querySelector("#canvas-lion");
 fitCanvaToContainer(canvasLion);
 
+const canvasCostume = document.querySelector("#canvas-costume");
+fitCanvaToContainer(canvasCostume);
+
 function fitCanvaToContainer(canvas) {
   canvas.style.width = "100%";
   canvas.style.height = "100%";
@@ -37,15 +38,10 @@ function fitCanvaToContainer(canvas) {
   canvas.height = canvas.offsetHeight;
 }
 
-// fitCanToContainer whenever the screen is resized
-// window.addEventListener("resize", () => {
-//   fitCanvaToContainer(canvasChevre);
-//   fitCanvaToContainer(canvasLion);
-// });
-
 // Scene
 const scene = new THREE.Scene();
 const sceneLion = new THREE.Scene();
+const sceneCostume = new THREE.Scene();
 
 /**
  * 3D Object Loader
@@ -74,6 +70,22 @@ objectLoader.load(
     lion.scene.position.y = -1.1;
     lion.scene.scale.set(1.3, 1.3, 1.3);
     sceneLion.add(lion.scene);
+  },
+  undefined,
+  function (error) {
+    console.error(error);
+  }
+);
+
+// COSTUME
+/* Can't seem to load a third obj in a third renderer */
+objectLoader.load(
+  "objects/costume.glb",
+  function (costume) {
+    costumeObj = costume.scene;
+    costume.scene.position.y = -1.1;
+    costume.scene.scale.set(1.3, 1.3, 1.3);
+    sceneCostume.add(costume.scene);
   },
   undefined,
   function (error) {
@@ -112,12 +124,6 @@ const directionalLight2Lion = new THREE.DirectionalLight(
   2
 );
 directionalLight2Lion.position.set(-1, -1, -5);
-
-// const directionalLightHelper = new THREE.DirectionalLightHelper(
-//   directionalLightLion,
-//   0.2
-// );
-// sceneLion.add(directionalLightHelper);
 
 scene.add(directionalLight, directionalLight2);
 sceneLion.add(directionalLightLion, directionalLight2Lion);
