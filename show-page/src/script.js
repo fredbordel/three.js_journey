@@ -14,6 +14,29 @@ const sizes = {
 };
 
 /**
+ * Resize
+ */
+window.addEventListener("resize", () => {
+  // Update sizes
+  sizes.width = window.innerWidth;
+  sizes.height = window.innerHeight;
+
+  // Update camera
+  camera.aspect = sizes.width / sizes.height;
+  camera.updateProjectionMatrix();
+
+  // Update renderer
+  renderer.setSize(sizes.width, sizes.height);
+});
+
+/**
+ * Texture
+ */
+const texture = new THREE.TextureLoader().load(
+  "http://stemkoski.github.io/Three.js/images/smokeparticle.png"
+);
+
+/**
  * Particles
  */
 const particlesGeometry = new THREE.BufferGeometry();
@@ -35,8 +58,12 @@ particlesGeometry.setAttribute(
 ); // Create the Three.js BufferAttribute and specify that each information is composed of 3 values
 
 const particlesMaterial = new THREE.PointsMaterial({
-  size: 0.02,
-  sizeAttenuation: true,
+  size: 4,
+  map: texture,
+  blending: THREE.AdditiveBlending,
+  depthWrite: false,
+  transparent: true,
+  color: "rgb(30,30,30)",
 });
 
 const particles = new THREE.Points(particlesGeometry, particlesMaterial);
@@ -73,7 +100,26 @@ scene.add(ambientLight);
 /**
  * Mouse move
  */
-document.addEventListener("mousemove", animateParticles);
+let mouse = new THREE.Vector3(0, 0, 1);
+
+function handleMouseMove(event) {
+  mouse.x = (event.clientX / sizes.width) * 2 - 1;
+  mouse.y = -(event.clientY / sizes.height) * 2 + 1;
+  mouse.z = 1;
+
+  // convert screen coordinates to threejs world position
+  // https://stackoverflow.com/questions/13055214/mouse-canvas-x-y-to-three-js-world-x-y-z
+
+  var vector = new THREE.Vector3(mouse.x, mouse.y, 0.5);
+  vector.unproject(camera);
+  var dir = vector.sub(camera.position).normalize();
+  var distance = -camera.position.z / dir.z;
+  var pos = camera.position.clone().add(dir.multiplyScalar(distance));
+
+  mouse = pos;
+}
+
+window.addEventListener("mousemove", handleMouseMove);
 
 /**
  * Animate
@@ -86,6 +132,37 @@ const tick = () => {
   const deltaTime = elapsedTime - previousTime;
   previousTime = elapsedTime;
 
+  for (let i = 0; i < 250; i++) {
+    const i3 = i * 3;
+    const previous = (i - 1) * 3;
+
+    if (i3 === 0) {
+      positions[0] = mouse.x;
+      positions[1] = mouse.y + 0.05;
+      positions[2] = mouse.z;
+    } else {
+      const currentPoint = new THREE.Vector3(
+        positions[i3],
+        positions[i3 + 1],
+        positions[i3 + 2]
+      );
+
+      const previousPoint = new THREE.Vector3(
+        positions[previous],
+        positions[previous + 1],
+        positions[previous + 2]
+      );
+
+      const lerpPoint = currentPoint.lerp(previousPoint, 0.9);
+
+      positions[i3] = lerpPoint.x;
+      positions[i3 + 1] = lerpPoint.y;
+      positions[i3 + 2] = mouse.z;
+    }
+  }
+  particlesGeometry.attributes.position.needsUpdate = true;
+
+  renderer.render(scene, camera);
   // Call tick again on the next frame
   window.requestAnimationFrame(tick);
 };
