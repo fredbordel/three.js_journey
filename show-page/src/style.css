@@ -4,6 +4,7 @@
     padding: 0;
 }
 
+
 html {
     background: #000;
 }
@@ -11,7 +12,6 @@ html {
 .webgl
 {
     position: fixed;
-    z-index: -1;
     top: 0;
     left: 0;
     outline: none;
@@ -22,17 +22,24 @@ html {
     display: flex;
     flex-direction: column;
     width: 100%;
-    height: 100%;
     position: absolute;
-    background-color: rgba(0, 0, 0, 0.888);
+    background-color: rgba(0, 0, 0, 0.436);
     padding: 32px 32px 32px 0;
+
+    .inverted {
+        flex-direction: row-reverse;
+    }
+
+    .reveal {
+        height: 800px;
+    }
 
     div {
         display: flex;
-        justify-content: space-between;
         gap: 10%;
         align-items: center;
         color: white;
+        margin-bottom: 10%;
 
         img {
             width: 30%;
@@ -42,6 +49,24 @@ html {
         p {
             font-family: 'Be Vietnam Pro';
             font-size: 24px;
+            max-width: 40%;
+        }
+    }
+}
+
+@media screen and (max-width: 600px) {
+    .content div {
+        flex-direction: column;
+
+        img {
+            width: 100%;
+            height: auto;
+        }
+
+        p {
+            font-size: 16px;
+            max-width: none;
+            padding: 16px;
         }
     }
 }

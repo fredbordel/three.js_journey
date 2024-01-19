@@ -1,4 +1,9 @@
 import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+
+const objectLoader = new GLTFLoader();
+let chevreObj = null;
 
 /**
  * Scene
@@ -30,50 +35,10 @@ window.addEventListener("resize", () => {
 });
 
 /**
- * Texture
- */
-const texture = new THREE.TextureLoader().load(
-  "http://stemkoski.github.io/Three.js/images/smokeparticle.png"
-);
-
-/**
- * Particles
- */
-const particlesGeometry = new THREE.BufferGeometry();
-const count = 250;
-
-const positions = new Float32Array(count * 3); // Multiply by 3 because each position is composed of 3 values (x, y, z)
-
-for (
-  let i = 0;
-  i < count * 3;
-  i++ // Multiply by 3 for same reason
-) {
-  positions[i] = (Math.random() - 0.5) * 2; // Math.random() - 0.5 to have a random value between -0.5 and +0.5
-}
-
-particlesGeometry.setAttribute(
-  "position",
-  new THREE.BufferAttribute(positions, 3)
-); // Create the Three.js BufferAttribute and specify that each information is composed of 3 values
-
-const particlesMaterial = new THREE.PointsMaterial({
-  size: 4,
-  map: texture,
-  blending: THREE.AdditiveBlending,
-  depthWrite: false,
-  transparent: true,
-  color: "rgb(30,30,30)",
-});
-
-const particles = new THREE.Points(particlesGeometry, particlesMaterial);
-scene.add(particles);
-
-/**
  * Camera
  */
 const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height);
-camera.position.z = 3;
+camera.position.z = 4;
 scene.add(camera);
 
 /**
@@ -92,75 +57,138 @@ renderer.setSize(sizes.width, sizes.height);
 renderer.render(scene, camera);
 
 /**
- * Light
+ * Controls
  */
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-scene.add(ambientLight);
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+controls.enableZoom = false;
 
 /**
- * Mouse move
+ * Geometry
  */
-let mouse = new THREE.Vector3(0, 0, 1);
+objectLoader.load(
+  "objects/chevre.glb",
+  function (chevre) {
+    chevreObj = chevre.scene;
+    chevreObj.scale.set(1.5, 1.5, 1.5);
+    chevreObj.position.x = 0;
+    chevreObj.position.y = -1.5;
+    scene.add(chevreObj);
+  },
+  undefined,
+  function (error) {
+    console.error(error);
+  }
+);
 
-function handleMouseMove(event) {
-  mouse.x = (event.clientX / sizes.width) * 2 - 1;
-  mouse.y = -(event.clientY / sizes.height) * 2 + 1;
-  mouse.z = 1;
+/**
+ * Light
+ */
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.05);
+ambientLight.position.set(0, 0, 3);
+scene.add(ambientLight);
 
-  // convert screen coordinates to threejs world position
-  // https://stackoverflow.com/questions/13055214/mouse-canvas-x-y-to-three-js-world-x-y-z
+const spotLight = new THREE.SpotLight("#D06541", 8, 10, Math.PI * 0.12, 0.2, 5);
 
-  var vector = new THREE.Vector3(mouse.x, mouse.y, 0.5);
-  vector.unproject(camera);
-  var dir = vector.sub(camera.position).normalize();
-  var distance = -camera.position.z / dir.z;
-  var pos = camera.position.clone().add(dir.multiplyScalar(distance));
+const spotLight2 = new THREE.SpotLight(
+  "#FFFFFF",
+  8,
+  10,
+  Math.PI * 0.12,
+  0.2,
+  5
+);
 
-  mouse = pos;
-}
+const spotLight3 = new THREE.SpotLight(
+  "#960905",
+  8,
+  10,
+  Math.PI * 0.12,
+  0.2,
+  5
+);
 
-window.addEventListener("mousemove", handleMouseMove);
+spotLight.position.set(3, 0, 3);
+spotLight2.position.set(0, 3, 3);
+spotLight3.position.set(-3, 0, 3);
+
+spotLight.visible = false;
+spotLight2.visible = false;
+spotLight3.visible = false;
+
+scene.add(spotLight);
+scene.add(spotLight2);
+scene.add(spotLight3);
+
+// ADD SPOTLIGHT helper
+// const spotLightHelper = new THREE.SpotLightHelper(spotLight);
+// scene.add(spotLightHelper);
+
+/**
+ * Reveal on scroll
+ */
+
+let hasScrolledTo90Percent = false;
+
+window.addEventListener("scroll", () => {
+  let scrollHeight = document.documentElement.scrollHeight;
+  let scrollTop = document.documentElement.scrollTop;
+  let clientHeight = document.documentElement.clientHeight;
+  let scrolledPercentage = (scrollTop + clientHeight) / scrollHeight;
+
+  if (!hasScrolledTo90Percent) {
+    if (scrolledPercentage > 0.9) {
+      hasScrolledTo90Percent = true;
+
+      spotLight.visible = true;
+      spotLight2.visible = true;
+      spotLight3.visible = true;
+
+      ambientLight.intensity = 0.5;
+
+      document.getElementById("site").style.pointerEvents = "none";
+
+      if (chevreObj) chevreObj.scale.set(1, 1, 1);
+    }
+  } else if (hasScrolledTo90Percent && scrolledPercentage < 0.9) {
+    hasScrolledTo90Percent = false;
+    spotLight.visible = false;
+    spotLight2.visible = false;
+    spotLight3.visible = false;
+    chevreObj.scale.set(1.5, 1.5, 1.5);
+    ambientLight.intensity = 0.05;
+    document.getElementById("site").style.pointerEvents = "auto";
+  }
+});
 
 /**
  * Animate
  */
 const clock = new THREE.Clock();
 let previousTime = 0;
+let direction = 1;
+
+Math.clamp = function (num, min, max) {
+  return num <= min ? min : num >= max ? max : num;
+};
 
 const tick = () => {
   const elapsedTime = clock.getElapsedTime();
   const deltaTime = elapsedTime - previousTime;
   previousTime = elapsedTime;
 
-  for (let i = 0; i < 250; i++) {
-    const i3 = i * 3;
-    const previous = (i - 1) * 3;
+  // Animate chevreObj position
+  if (chevreObj) {
+    chevreObj.rotation.y = elapsedTime * 0.02;
 
-    if (i3 === 0) {
-      positions[0] = mouse.x;
-      positions[1] = mouse.y + 0.05;
-      positions[2] = mouse.z;
-    } else {
-      const currentPoint = new THREE.Vector3(
-        positions[i3],
-        positions[i3 + 1],
-        positions[i3 + 2]
-      );
-
-      const previousPoint = new THREE.Vector3(
-        positions[previous],
-        positions[previous + 1],
-        positions[previous + 2]
-      );
-
-      const lerpPoint = currentPoint.lerp(previousPoint, 0.9);
-
-      positions[i3] = lerpPoint.x;
-      positions[i3 + 1] = lerpPoint.y;
-      positions[i3 + 2] = mouse.z;
+    if (chevreObj.rotation.x > 0.2) {
+      direction = -1;
+    } else if (chevreObj.rotation.x < -0.2) {
+      direction = 1;
     }
+
+    chevreObj.rotation.x += deltaTime * 0.01 * direction;
   }
-  particlesGeometry.attributes.position.needsUpdate = true;
 
   renderer.render(scene, camera);
   // Call tick again on the next frame
