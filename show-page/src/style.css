@@ -15,6 +15,7 @@ html {
     top: 0;
     left: 0;
     outline: none;
+    cursor: pointer;
 }
 
 
@@ -51,6 +52,10 @@ html {
             font-size: 24px;
             max-width: 40%;
         }
+    }
+
+    div:first-of-type {
+        margin-top: 180px;
     }
 }
 
