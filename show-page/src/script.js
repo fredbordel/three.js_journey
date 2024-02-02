@@ -4,6 +4,8 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
 const objectLoader = new GLTFLoader();
 let chevreObj = null;
+let isObjectRevealed = false;
+let objectIsClicked = false;
 
 /**
  * Scene
@@ -35,6 +37,40 @@ window.addEventListener("resize", () => {
 });
 
 /**
+ * Raycaster
+ */
+const raycaster = new THREE.Raycaster();
+const rayOrigin = new THREE.Vector3(-3, 0, 0);
+const rayDirection = new THREE.Vector3(10, 0, 0);
+rayDirection.normalize();
+raycaster.set(rayOrigin, rayDirection);
+
+/**
+ * Mouse
+ */
+const mouse = new THREE.Vector2();
+
+window.addEventListener("mousemove", (event) => {
+  mouse.x = (event.clientX / sizes.width) * 2 - 1;
+  mouse.y = -(event.clientY / sizes.height) * 2 + 1;
+});
+
+/**
+ * Click
+ */
+let currentIntersect = null;
+
+window.addEventListener("click", () => {
+  if (currentIntersect) {
+    if (currentIntersect.object.name === "CHEVRE") {
+      objectIsClicked = true;
+    } else {
+      objectIsClicked = false;
+    }
+  }
+});
+
+/**
  * Camera
  */
 const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height);
@@ -59,9 +95,9 @@ renderer.render(scene, camera);
 /**
  * Controls
  */
-const controls = new OrbitControls(camera, canvas);
-controls.enableDamping = true;
-controls.enableZoom = false;
+// const controls = new OrbitControls(camera, canvas);
+// controls.enableDamping = true;
+// controls.enableZoom = false;
 
 /**
  * Geometry
@@ -112,17 +148,9 @@ spotLight.position.set(3, 0, 3);
 spotLight2.position.set(0, 3, 3);
 spotLight3.position.set(-3, 0, 3);
 
-spotLight.visible = false;
-spotLight2.visible = false;
-spotLight3.visible = false;
-
 scene.add(spotLight);
 scene.add(spotLight2);
 scene.add(spotLight3);
-
-// ADD SPOTLIGHT helper
-// const spotLightHelper = new THREE.SpotLightHelper(spotLight);
-// scene.add(spotLightHelper);
 
 /**
  * Reveal on scroll
@@ -162,6 +190,8 @@ function revealAnimalHead() {
     (entries, observer) => {
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
+          isObjectRevealed = true;
+
           spotLight.visible = true;
           spotLight2.visible = true;
           spotLight3.visible = true;
@@ -172,6 +202,8 @@ function revealAnimalHead() {
 
           if (chevreObj) animateScale(chevreObj, { x: 1, y: 1, z: 1 }, 200);
         } else {
+          isObjectRevealed = false;
+
           spotLight.visible = false;
           spotLight2.visible = false;
           spotLight3.visible = false;
@@ -217,18 +249,28 @@ const tick = () => {
   const deltaTime = elapsedTime - previousTime;
   previousTime = elapsedTime;
 
-  // Animate chevreObj position
-  // if (chevreObj) {
-  //   chevreObj.rotation.y = elapsedTime * 0.02;
+  // Cast a ray
+  raycaster.setFromCamera(mouse, camera);
 
-  //   if (chevreObj.rotation.x > 0.2) {
-  //     direction = -1;
-  //   } else if (chevreObj.rotation.x < -0.2) {
-  //     direction = 1;
-  //   }
+  if (chevreObj && isObjectRevealed) {
+    const modelIntersects = raycaster.intersectObject(chevreObj);
+    if (modelIntersects.length) {
+      document.querySelector(".webgl").style.cursor = "pointer";
+      objectIsClicked
+        ? document.querySelector(".popup").classList.remove("--close")
+        : null;
+    } else {
+      objectIsClicked = false;
+      document.querySelector(".webgl").style.cursor = "auto";
+      document.querySelector(".popup").classList.add("--close");
+    }
 
-  //   chevreObj.rotation.x += deltaTime * 0.01 * direction;
-  // }
+    if (modelIntersects.length) {
+      currentIntersect = modelIntersects[0];
+    } else {
+      currentIntersect = null;
+    }
+  }
 
   renderer.render(scene, camera);
   // Call tick again on the next frame
