@@ -1,13 +1,14 @@
 import * as THREE from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import GUI from "lil-gui";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { RGBELoader } from "three/addons/loaders/RGBELoader.js";
 
 /**
  * Loaders
  */
 const gltfLoader = new GLTFLoader();
-const cubeTextureLoader = new THREE.CubeTextureLoader();
+const textureLoader = new THREE.TextureLoader();
 
 /**
  * Base
@@ -36,6 +37,13 @@ const updateAllMaterials = () => {
 /**
  * Environment map
  */
+
+scene.backgroundBlurriness = 0;
+scene.backgroundIntensity = 1;
+
+gui.add(scene, "backgroundBlurriness").min(0).max(1).step(0.001);
+gui.add(scene, "backgroundIntensity").min(0).max(10).step(0.001);
+
 global.envMapIntensity = 1;
 gui
   .add(global, "envMapIntensity")
@@ -45,17 +53,67 @@ gui
   .onChange(updateAllMaterials);
 
 // LDR (low dynamic range) cube texture
-const environmentMap = cubeTextureLoader.load([
-  "/environmentMaps/0/px.png",
-  "/environmentMaps/0/nx.png",
-  "/environmentMaps/0/py.png",
-  "/environmentMaps/0/ny.png",
-  "/environmentMaps/0/pz.png",
-  "/environmentMaps/0/nz.png",
-]);
+// const environmentMap = cubeTextureLoader.load([
+//   "/environmentMaps/0/px.png",
+//   "/environmentMaps/0/nx.png",
+//   "/environmentMaps/0/py.png",
+//   "/environmentMaps/0/ny.png",
+//   "/environmentMaps/0/pz.png",
+//   "/environmentMaps/0/nz.png",
+// ]);
+
+// scene.background = environmentMap;
+// scene.environment = environmentMap;
+
+// HDR (RGBE) equirectangular environment map
+// rgbeLoader.load("/environmentMaps/0/2k.hdr", (environmentMap) => {
+//   environmentMap.mapping = THREE.EquirectangularReflectionMapping;
+//   scene.background = environmentMap;
+//   scene.environment = environmentMap;
+// });
+
+// Ground projected skybox
+// rgbeLoader.load("/environmentMaps/2/2k.hdr", (environmentMap) => {
+// environmentMap.mapping = THREE.EquirectangularReflectionMapping;
+// scene.environment = environmentMap;
+// Skybox
+// const skybox = new GroundProjectedSkybox(environmentMap);
+// skybox.radius = 120;
+// skybox.height = 11;
+// skybox.scale.setScalar(50);
+// scene.add(skybox);
+// });
+
+/**
+ * Real time environment map
+ */
+const environmentMap = textureLoader.load(
+  "/environmentMaps/blockadesLabsSkybox/interior_views_cozy_wood_cabin_with_cauldron_and_p.jpg"
+);
+environmentMap.mapping = THREE.EquirectangularReflectionMapping;
+environmentMap.colorSpace = THREE.SRGBColorSpace;
 
 scene.background = environmentMap;
-scene.environment = environmentMap;
+
+// Holy donut
+const holyDonut = new THREE.Mesh(
+  new THREE.TorusGeometry(8, 0.5),
+  new THREE.MeshBasicMaterial({ color: new THREE.Color(10, 4, 2) })
+);
+holyDonut.position.y = 3.5;
+holyDonut.layers.enable(1);
+scene.add(holyDonut);
+
+// Cube render target
+const cubeRenderTarget = new THREE.WebGLCubeRenderTarget(256, {
+  type: THREE.HalfFloatType,
+});
+
+scene.environment = cubeRenderTarget.texture;
+
+// Cube camera
+const cubeCamera = new THREE.CubeCamera(0.1, 100, cubeRenderTarget);
+cubeCamera.layers.set(1);
 
 /**
  * Torus Knot
@@ -140,6 +198,12 @@ const clock = new THREE.Clock();
 const tick = () => {
   // Time
   const elapsedTime = clock.getElapsedTime();
+
+  // Real time environment map
+  if (holyDonut) {
+    holyDonut.rotation.x = Math.sin(elapsedTime) * 2;
+    cubeCamera.update(renderer, scene);
+  }
 
   // Update controls
   controls.update();
